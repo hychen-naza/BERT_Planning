@@ -178,15 +178,17 @@ class Trainer:
                     # report progress
                     pbar.set_description(f"epoch {epoch+1} iter {it}: bert loss {bert_loss.item():.5f}. lr {lr:e}") # gt_traj_energy {gt_traj_energy}. rate {rate}. target_rate {target_rate}
                     #pbar.set_description(f"epoch {epoch+1} iter {it}: dt loss {dt_loss.item():.5f}. lr {lr:e}")
-                interval = 300
+                interval = 1
                 # very initial result
                 if (epoch_num ==0 and it == 2):
                     msg = f'Test it {it}, epoch_num {epoch_num}, bert loss {np.mean(bert_losses):.5f}, gt_traj_energys {np.mean(gt_traj_energys):.5f}, mcmc_better_than_first_rates {np.mean(mcmc_better_than_first_rates):.5f}, mcmc__better_than_all_rates {np.mean(mcmc__better_than_all_rates):.5f}, mcmc_energys {np.mean(mcmc_energys):.5f}, free_rates {np.mean(free_rates):.5f}, action_correct_rate {np.mean(action_correct_rates):.5f}, all_action_correct_rate_steps {np.mean(all_action_correct_rate_steps[-interval:],axis=0)}' #rates {np.mean(rates)}, 
                     self.logger.info(msg)
 
-                if (it % interval == 0 and epoch_num >=0 and it > 1): #    % 4000  and it > 100
+                if (it % interval == 0 and epoch_num >=0 and it >= 0): #    % 4000  and it > 100
                     msg = f'Test it {it}, epoch_num {epoch_num}, bert loss {np.mean(bert_losses[-interval:]):.5f}, gt_traj_energys {np.mean(gt_traj_energys[-interval:]):.5f}, mcmc_better_than_first_rates {np.mean(mcmc_better_than_first_rates[-interval:]):.5f}, mcmc__better_than_all_rates {np.mean(mcmc__better_than_all_rates[-interval:]):.5f}, mcmc_energys {np.mean(mcmc_energys[-interval:]):.5f}, free_rates {np.mean(free_rates[-interval:]):.5f}, action_correct_rate {np.mean(action_correct_rates[-interval:]):.5f}, all_action_correct_rate_steps {np.mean(all_action_correct_rate_steps[-interval:],axis=0)}' #rates {np.mean(rates)}, 
                     self.logger.info(msg)
+                    if (np.mean(action_correct_rates[-interval:])>0.95):
+                        pdb.set_trace()
                     #tmp = np.mean(all_action_correct_rate_steps[-interval:],axis=0)
                     #if (np.isnan(tmp[-1])):
                     #    pdb.set_trace()

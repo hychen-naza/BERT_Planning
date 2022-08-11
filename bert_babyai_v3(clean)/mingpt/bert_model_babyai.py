@@ -380,7 +380,7 @@ class BERT_GPT(nn.Module):
         _, hidden = self.instr_rnn(self.word_embedding(instr))
         return hidden[-1]
 
-    def mcmc_construct_trajectory(self, init_states, init_obss, t, insts, target_actions=None, target_action_masks=None, sample_iteration=5):
+    def mcmc_construct_trajectory(self, init_states, init_obss, t, insts, target_actions=None, target_action_masks=None, sample_iteration=10):
         self.rate = 2
         self.batch_size = init_states.shape[0]
         context = self.block_size // self.rate
@@ -394,8 +394,8 @@ class BERT_GPT(nn.Module):
         init_states = init_states.unsqueeze(1).to('cuda')
         sample_states = torch.cat((init_states, sample_states), dim=1).to(dtype=torch.long)
 
-        init_obss = torch.repeat_interleave(torch.Tensor(init_obss).unsqueeze(1), context, dim=1).to(dtype=torch.float32)
-        init_obss = init_obss.to('cuda')
+        sample_obss = torch.repeat_interleave(torch.Tensor(init_obss).unsqueeze(1), context, dim=1).to(dtype=torch.float32)
+        sample_obss = sample_obss.to('cuda')
         # NAZA
         sample_actions = [[token2idx('<-PAD->')] for i in range(context)]
         sample_actions = torch.repeat_interleave(torch.Tensor(sample_actions).unsqueeze(0), self.batch_size, dim=0).to(dtype=torch.long).to('cuda')
@@ -415,23 +415,25 @@ class BERT_GPT(nn.Module):
             #action_masks = torch.logical_and(action_masks, target_action_masks)
 
             sample_actions[action_masks] = token2idx('<-MASK->')
-            action_logits = self.forward(sample_states, sample_actions, timesteps=t, insts=insts, full_image=init_obss, mode='eval')
+            action_logits = self.forward(sample_states, sample_actions, timesteps=t, insts=insts, full_image=sample_obss, mode='eval')
             #action_val = torch.multinomial(F.softmax(action_logits.reshape(-1,action_logits.shape[2]), dim=-1), num_samples=1).reshape(self.batch_size,context)
             _, action_val = torch.topk(F.softmax(action_logits.reshape(-1,action_logits.shape[2]), dim=-1), k=1, dim=-1)
             action_val = action_val.reshape(self.batch_size, context)
             if (i < sample_iteration-1):
                 sample_actions[action_masks] = action_val.unsqueeze(2)[action_masks]
                 iter_actions = sample_actions.cpu().numpy()
-                sample_states = self.update_sample_states(sample_states, iter_actions)
+                #sample_states = self.update_sample_states(sample_states, iter_actions)
+                sample_states, sample_obss = self.update_samples(sample_states, sample_obss, iter_actions)
+                energys.append(self.compute_energy(target_actions, sample_actions, action_logits, torch.logical_and(action_masks, target_action_masks)).item())
             else:
                 train_sample_actions = sample_actions.clone()
                 train_sample_actions[action_masks] = action_val.unsqueeze(2)[action_masks]
-
                 #sample_actions[action_masks] = action_val.unsqueeze(2)[action_masks]
                 #iter_actions = train_sample_actions.cpu().numpy()
                 #sample_states = self.update_sample_states(sample_states, iter_actions)
+                energys.append(self.compute_energy(target_actions, train_sample_actions, action_logits, torch.logical_and(action_masks, target_action_masks)).item())
             #energys.append(self.compute_energy(target_actions, sample_actions, action_logits, target_action_masks).item())
-            energys.append(self.compute_energy(target_actions, sample_actions, action_logits, torch.logical_and(action_masks, target_action_masks)).item())
+
         #print(f"energys {energys}")    
         #pdb.set_trace()
         is_better_than_first = energys[-1] < energys[0]
@@ -439,12 +441,12 @@ class BERT_GPT(nn.Module):
 
         # free rates
         tmp = ((sample_states[:,:,0]*self.env_size + sample_states[:,:,1])*3).unsqueeze(2)
-        free_steps = torch.logical_and(torch.logical_or(torch.gather(init_obss,2,tmp) == 10., torch.gather(init_obss,2,tmp) == 1.), target_action_masks)
+        free_steps = torch.logical_and(torch.logical_or(torch.gather(sample_obss,2,tmp) == 10., torch.gather(sample_obss,2,tmp) == 1.), target_action_masks)
         free_rate = torch.sum(free_steps) / torch.sum(target_action_masks)
         #pdb.set_trace()
         # action correct rate
         targets = target_actions.masked_select(target_action_masks)
-        samples = sample_actions.masked_select(target_action_masks)
+        samples = train_sample_actions.masked_select(target_action_masks)
         action_correct_rate = torch.sum(targets == samples) / len(samples)
 
         # action correct rate at each step
@@ -455,12 +457,69 @@ class BERT_GPT(nn.Module):
             step_mask[:,i] = 1
             step_mask = torch.from_numpy(step_mask).to(torch.bool).to('cuda')
             targets = target_actions.masked_select(torch.logical_and(target_action_masks,step_mask))
-            samples = sample_actions.masked_select(torch.logical_and(target_action_masks,step_mask))
+            samples = train_sample_actions.masked_select(torch.logical_and(target_action_masks,step_mask))
             if (len(targets)>0):
                 action_correct_rate_steps.append((torch.sum(targets == samples) / len(samples)).item())
             else:
                 action_correct_rate_steps.append(0)
         return train_sample_actions, action_logits, is_better_than_first, is_better_than_all, energys[-1], free_rate.item(), action_correct_rate.item(), action_correct_rate_steps
+
+    def update_samples(self, sample_states, sample_obss, sample_actions):
+        #pdb.set_trace()
+        for step in range(sample_actions.shape[1]-1):
+            delta_states = np.zeros((sample_actions.shape[0],2))
+            action = sample_actions[:,step]
+            delta_states[np.where(action==token2idx('<-RIGHT->'))[0],:] = [1,0]
+            delta_states[np.where(action==token2idx('<-LEFT->'))[0],:] = [-1,0]
+            delta_states[np.where(action==token2idx('<-UP->'))[0],:] = [0,-1]
+            delta_states[np.where(action==token2idx('<-DOWN->'))[0],:] = [0,1]
+            delta_states = torch.from_numpy(delta_states).to(dtype=torch.long).to('cuda')
+            # 
+            new_states = sample_states[:,step,:2] + delta_states
+            new_states[new_states<1] = 1
+            new_states[new_states>self.env_size-1] = self.env_size-1
+            # positions idxs the agent is moving to
+            new_states_idxs = ((new_states[:,0]*self.env_size + new_states[:,1])*3)
+            old_states_idxs = ((sample_states[:,step,0]*self.env_size + sample_states[:,step,1])*3)
+            # find out free grids
+            obss_val = torch.gather(sample_obss[:,step+1],1,new_states_idxs.unsqueeze(1))
+            obss_logit = torch.logical_or(obss_val == 10., obss_val == 1.)
+            # update the new agent position if it can move 
+            # and also clean the previous agent position
+
+            sample_obss[:,step+1] = sample_obss[:,step]
+            move_idxs = torch.where(obss_logit==True)[0]
+
+            sample_obss[move_idxs,step+1,old_states_idxs[move_idxs]] = 1.
+            sample_obss[move_idxs,step+1,(old_states_idxs+1)[move_idxs]] = 0.
+
+            sample_obss[move_idxs,step+1,new_states_idxs[move_idxs]] = 10. # AGENT ID
+            sample_obss[move_idxs,step+1,(new_states_idxs+1)[move_idxs]] = 6. # AGENT COLOR
+            
+            if (torch.sum(sample_obss[:,step+1] == 10.) != sample_obss.shape[0]):
+                pdb.set_trace()
+            # don't move the agent if the states are not reachable
+            stay_idxs = torch.where(obss_logit==False)[0]
+            new_states[stay_idxs,:] = sample_states[stay_idxs,step,:2]
+            sample_states[:,step+1,:2] = new_states
+
+            #sample_states[:,:,:2][sample_states[:,:,:2]<1] = 1
+            #sample_states[:,:,:2][sample_states[:,:,:2]>self.env_size-1] = self.env_size-1
+            # update directions in states
+            delta_directions = np.zeros((sample_actions.shape[0],1))
+            delta_directions[np.where(action==token2idx('<-RIGHT->'))[0],:] = [0]
+            delta_directions[np.where(action==token2idx('<-LEFT->'))[0],:] = [2]
+            delta_directions[np.where(action==token2idx('<-UP->'))[0],:] = [3]
+            delta_directions[np.where(action==token2idx('<-DOWN->'))[0],:] = [1]
+            delta_directions = torch.from_numpy(delta_directions).to(dtype=torch.long).to('cuda')
+            sample_states[:,step+1,2:3] = delta_directions
+            # update directions in obss
+            new_direction_idxs = ((new_states[:,0]*self.env_size + new_states[:,1])*3) + 2
+            tmp_idxs = torch.arange(0, sample_states.shape[0]).to(torch.long)
+            sample_obss[tmp_idxs,step+1,new_direction_idxs] = delta_directions.squeeze(1).to(torch.float32)
+        #pdb.set_trace()
+        return sample_states, sample_obss
+
 
     def compute_energy(self, target_actions, sample_actions, action_logits, action_masks, use_sum=False, neg_energy=False):
         action_size = action_logits.shape[2]
@@ -530,7 +589,7 @@ class BERT_GPT(nn.Module):
         gt_traj_energy /= nums
         return gt_traj_energy
 
-
+    
     def update_sample_states(self, sample_states, sample_actions):
         for step in range(sample_actions.shape[1]-1):
             delta_states = np.zeros((sample_actions.shape[0],2))
@@ -553,7 +612,7 @@ class BERT_GPT(nn.Module):
             delta_directions = torch.from_numpy(delta_directions).to(dtype=torch.long).to('cuda')
             sample_states[:,step+1,2:3] = delta_directions
         return sample_states
-
+    
     def train_step(self, target_states, target_actions, target_imgs, state_masks=None, action_masks=None,\
             timesteps=None, insts=None, init_states=None, init_obss=None,\
             mode='train', is_debug=False, logger=None):

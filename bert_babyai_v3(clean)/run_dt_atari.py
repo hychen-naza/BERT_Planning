@@ -39,7 +39,7 @@ parser.add_argument('--horizon', type=int, default=1)
 parser.add_argument('--env', type=str, default='BabyAI-PickupLoc-v0') #'BabyAI-Unlock-v0' #'BabyAI-GoToObj-v0'
 #'/home/hchen657/Downloads/BabyAI-Unlock-v0.pkl' PickupLoc
 #'/home/hchen657/Downloads/BabyAI-GoToObj-v0.pkl'
-parser.add_argument('--bert_dataset_path', type=str, default="/home/hchen657/decision-transformer/babyai/demos/BabyAI-PickupLoc-v0_agent_all_new.pkl")#_all_new #_all_new_half #_all_new_fifth
+parser.add_argument('--bert_dataset_path', type=str, default="/home/hchen657/decision-transformer/babyai/demos/BabyAI-PickupLoc-v0_agent1.pkl")#_all_new #_all_new_half #_all_new_fifth
 parser.add_argument('--dt_dataset_path', type=str, default="/home/hchen657/decision-transformer/babyai/demos/BabyAI-PickupLoc-v0.pkl")#_all_new #_all_new_half #_all_new_fifthparser.add_argument('--trajectories_per_buffer', type=int, default=10, help='Number of trajectories to sample from each of the buffers.')
 parser.add_argument('--data_dir_prefix', type=str, default='./dqn_replay/')
 args = parser.parse_args()
@@ -121,6 +121,8 @@ class BERTDataset(Dataset):
         #delta_states.append(token2idx('<-END->'))
         #proc_images.append(images[-1])
         #proc_states.append(states[-1][:2]+states[-1][-2:]) #+states[i][-2:]
+        for i in range(len(delta_states)-1):
+            proc_states[i+1][2] = delta_states[i]
         return proc_states, proc_images, delta_states
 
     def __getitem__(self, idx):
