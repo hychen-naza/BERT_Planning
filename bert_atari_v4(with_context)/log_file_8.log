@@ -1,0 +1,36 @@
+Test it 0, epoch_num 0, bert loss 0.36757, gt_traj_energys -0.34209, mcmc_better_than_first_rates 1.00000, mcmc__better_than_all_rates 0.00000, mcmc_energys -0.35523, free_rates 1.00000, action_correct_rate 0.40000, all_action_correct_rate_steps [0.375      0.31914893 0.51428574 0.34615386 0.27777779 0.53333336
+ 0.5        0.60000002]
+eval return: 0.0, success_rate: 0.000
+Test it 2, epoch_num 0, bert loss 0.38622, gt_traj_energys -0.45695, mcmc_better_than_first_rates 1.00000, mcmc__better_than_all_rates 0.00000, mcmc_energys -0.48231, free_rates 1.00000, action_correct_rate 0.56145, all_action_correct_rate_steps [0.51041667 0.5173307  0.62487727 0.53745359 0.54338626 0.74747477
+ 0.55555556 0.68888891]
+Test it 0, epoch_num 0, bert loss 0.37249, gt_traj_energys -0.34043, mcmc_better_than_first_rates 1.00000, mcmc__better_than_all_rates 0.00000, mcmc_energys -0.35414, free_rates 1.00000, action_correct_rate 0.43111, all_action_correct_rate_steps [0.34375    0.34042552 0.34285715 0.57692307 0.55555558 0.73333335
+ 0.5        0.60000002]
+eval return: 0.0, success_rate: 0.000
+Test it 2, epoch_num 0, bert loss 0.38122, gt_traj_energys -0.45810, mcmc_better_than_first_rates 1.00000, mcmc__better_than_all_rates 0.00000, mcmc_energys -0.49776, free_rates 1.00000, action_correct_rate 0.57182, all_action_correct_rate_steps [0.5        0.52442289 0.56773441 0.61437666 0.63597886 0.81414143
+ 0.55555556 0.68888891]
+Test it 300, epoch_num 0, bert loss 0.20036, gt_traj_energys -0.65044, mcmc_better_than_first_rates 0.55667, mcmc__better_than_all_rates 0.13333, mcmc_energys -0.63809, free_rates 1.00000, action_correct_rate 0.65008, all_action_correct_rate_steps [0.59515625 0.64515705 0.6772266  0.68688721 0.68418372 0.67623085
+ 0.68921099 0.68099579]
+eval return: 0.0, success_rate: 0.000
+Test it 0, epoch_num 0, bert loss 0.37249, gt_traj_energys -0.34043, mcmc_better_than_first_rates 1.00000, mcmc__better_than_all_rates 0.00000, mcmc_energys -0.35414, free_rates 1.00000, action_correct_rate 0.43111, all_action_correct_rate_steps [0.34375    0.34042552 0.34285715 0.57692307 0.55555558 0.73333335
+ 0.5        0.60000002]
+eval return: 0.0, success_rate: 0.000
+Test it 2, epoch_num 0, bert loss 0.38122, gt_traj_energys -0.45810, mcmc_better_than_first_rates 1.00000, mcmc__better_than_all_rates 0.00000, mcmc_energys -0.49776, free_rates 1.00000, action_correct_rate 0.57182, all_action_correct_rate_steps [0.5        0.52442289 0.56773441 0.61437666 0.63597886 0.81414143
+ 0.55555556 0.68888891]
+Test it 300, epoch_num 0, bert loss 0.26026, gt_traj_energys -0.64565, mcmc_better_than_first_rates 0.48667, mcmc__better_than_all_rates 0.10667, mcmc_energys -0.63486, free_rates 1.00000, action_correct_rate 0.64692, all_action_correct_rate_steps [0.58755208 0.63809997 0.67195434 0.69055647 0.68763566 0.67845046
+ 0.68974205 0.68717079]
+eval return: 0.09578125, success_rate: 0.100
+Test it 600, epoch_num 0, bert loss 0.18149, gt_traj_energys -0.66793, mcmc_better_than_first_rates 0.52000, mcmc__better_than_all_rates 0.12000, mcmc_energys -0.63783, free_rates 1.00000, action_correct_rate 0.65873, all_action_correct_rate_steps [0.62302083 0.65049841 0.66673801 0.68443749 0.6941278  0.70354733
+ 0.67680843 0.66990479]
+eval return: 0.14234375, success_rate: 0.200
+Test it 900, epoch_num 0, bert loss 0.19183, gt_traj_energys -0.67016, mcmc_better_than_first_rates 0.58000, mcmc__better_than_all_rates 0.14000, mcmc_energys -0.66019, free_rates 1.00000, action_correct_rate 0.65748, all_action_correct_rate_steps [0.60489583 0.64859999 0.67455236 0.7104443  0.6936755  0.69112545
+ 0.66941149 0.69441874]
+eval return: 0.2240625, success_rate: 0.300
+Test it 1200, epoch_num 0, bert loss 0.17539, gt_traj_energys -0.68517, mcmc_better_than_first_rates 0.59000, mcmc__better_than_all_rates 0.15667, mcmc_energys -0.66896, free_rates 1.00000, action_correct_rate 0.66104, all_action_correct_rate_steps [0.60369792 0.65744756 0.69072895 0.70589619 0.69510709 0.69063667
+ 0.67431965 0.6867424 ]
+eval return: 0.19296875, success_rate: 0.200
+Test it 1500, epoch_num 0, bert loss 0.11561, gt_traj_energys -0.68591, mcmc_better_than_first_rates 0.61333, mcmc__better_than_all_rates 0.14333, mcmc_energys -0.66287, free_rates 1.00000, action_correct_rate 0.66041, all_action_correct_rate_steps [0.6196875  0.65602657 0.67299043 0.6984243  0.688495   0.67993567
+ 0.68219193 0.67911734]
+eval return: 0.0, success_rate: 0.000
+Test it 1800, epoch_num 0, bert loss 0.10907, gt_traj_energys -0.66030, mcmc_better_than_first_rates 0.58000, mcmc__better_than_all_rates 0.13000, mcmc_energys -0.66097, free_rates 1.00000, action_correct_rate 0.65554, all_action_correct_rate_steps [0.60114583 0.64055328 0.67569119 0.71066492 0.70012216 0.68111033
+ 0.68804157 0.70137109]
+eval return: 0.2578125, success_rate: 0.300
