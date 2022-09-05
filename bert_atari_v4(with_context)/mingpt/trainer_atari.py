@@ -54,10 +54,12 @@ class TrainerConfig:
     # checkpoint settings
     ckpt_path = None
     num_workers = 0 # for DataLoader
+    #ckpt_path = './model_checkpoint/best_checkpoint.pth'
 
     def __init__(self, **kwargs):
         for k,v in kwargs.items():
             setattr(self, k, v)
+        self.ckpt_path = f'./model_checkpoint/{self.seed}_best_checkpoint.pth'
 
 class Trainer:
 
@@ -89,10 +91,13 @@ class Trainer:
         self.logger.addHandler(handler)
         
     def save_checkpoint(self):
-        # DataParallel wrappers keep raw model object in .module attribute
-        raw_model = self.dt_model.module if hasattr(self.dt_model, "module") else self.dt_model
-        logger.info("saving %s", self.config.ckpt_path)
-        # torch.save(raw_model.state_dict(), self.config.ckpt_path)
+        print(f"saving {self.config.ckpt_path}")
+        torch.save(self.bert_model, self.config.ckpt_path)
+
+    def load_checkpoint(self):
+        print(f"loading {self.config.ckpt_path}")
+        self.bert_model = torch.load(self.config.ckpt_path)
+        self.bert_model.eval()
 
     def train(self):
         bert_model, config = self.bert_model, self.config
@@ -125,29 +130,31 @@ class Trainer:
 
                 #init_x = init_x.to(self.device)
                 #init_image = init_image.to(self.device)
-                with torch.autograd.set_detect_anomaly(True):
-                    with torch.set_grad_enabled(is_train):
-                        bert_loss, gt_traj_energy, mcmc_energy, \
-                            action_correct_rate, action_correct_rate_steps, pos_energy, neg_energy \
-                            = bert_model.train_step(x, y, action_masks=msk_y,\
-                                timesteps=t,init_states=init_x, logger = self.logger) 
-                        if (bert_loss == 0):
-                            continue
-                        bert_loss = bert_loss.mean() 
-                        bert_losses.append(bert_loss.item())
-                        gt_traj_energys.append(gt_traj_energy)
-                        mcmc_energys.append(mcmc_energy)
-                        action_correct_rates.append(action_correct_rate)
-                        all_action_correct_rate_steps.append(action_correct_rate_steps)
-                        pos_energies.append(pos_energy.item())
-                        neg_energies.append(neg_energy.item())
+                
+                with torch.set_grad_enabled(is_train):
+                    bert_loss, gt_traj_energy, mcmc_energy, \
+                        action_correct_rate, action_correct_rate_steps, pos_energy, neg_energy \
+                        = bert_model.train_step(x, y, action_masks=msk_y,\
+                            timesteps=t,init_states=init_x, logger = self.logger) 
+                    if (bert_loss == 0):
+                        continue
+                    bert_loss = bert_loss.mean() 
+                    bert_losses.append(bert_loss.item())
+                    gt_traj_energys.append(gt_traj_energy)
+                    mcmc_energys.append(mcmc_energy)
+                    action_correct_rates.append(action_correct_rate)
+                    all_action_correct_rate_steps.append(action_correct_rate_steps)
+                    pos_energies.append(pos_energy.item())
+                    neg_energies.append(neg_energy.item())
+                
+                    bert_model.zero_grad()
+                    bert_loss.backward()
+
                     try:
-                        bert_model.zero_grad()
-                        bert_loss.backward()
-                        torch.nn.utils.clip_grad_norm_(bert_model.parameters(), config.grad_norm_clip)
-                        bert_optimizer.step()
-                    except RuntimeError:
-                        pdb.set_trace()
+                        torch.nn.utils.clip_grad_norm_(bert_model.parameters(), config.grad_norm_clip, error_if_nonfinite=True)
+                    except:
+                        continue
+                    bert_optimizer.step()
                 
                 if is_train:
                     # backprop and update the parameters in model
@@ -175,18 +182,24 @@ class Trainer:
                 #    msg = f'Test it {it}, epoch_num {epoch_num}, bert loss {np.mean(bert_losses):.5f}, gt_traj_energys {np.mean(gt_traj_energys):.5f}, mcmc_better_than_first_rates {np.mean(mcmc_better_than_first_rates):.5f}, mcmc__better_than_all_rates {np.mean(mcmc__better_than_all_rates):.5f}, mcmc_energys {np.mean(mcmc_energys):.5f}, action_correct_rate {np.mean(action_correct_rates):.5f}, all_action_correct_rate_steps {np.mean(all_action_correct_rate_steps[-interval:],axis=0)}, pos eng {np.mean(pos_energies[-interval:]):.5f}, neg eng {np.mean(neg_energies[-interval:]):.5f}' #rates {np.mean(rates)}, 
                 #    self.logger.info(msg)
                 # it % interval == 0 and 
-                if (it == 0 and epoch_num >= 0 and epoch_num % 1 ==0): #    % 4000  and it > 100  it >= 2
-                    msg = f'Test it {it}, epoch_num {epoch_num}, bert loss {np.mean(bert_losses[-interval:]):.5f}, gt_traj_energys {np.mean(gt_traj_energys[-interval:]):.5f}, mcmc_energys {np.mean(mcmc_energys[-interval:]):.5f}, action_correct_rate {np.mean(action_correct_rates[-interval:]):.5f}, all_action_correct_rate_steps {np.mean(all_action_correct_rate_steps[-interval:],axis=0)}, pos eng {np.mean(pos_energies[-interval:]):.5f}, neg eng {np.mean(neg_energies[-interval:]):.5f}' #rates {np.mean(rates)}, 
-                    self.logger.info(msg)
-                    self.test_returns(0, test_num=5) 
+                #if (it == 0 and epoch_num >= 1 and epoch_num % 2 ==0): #    % 4000  and it > 100  it >= 2
+                #    msg = f'Test it {it}, epoch_num {epoch_num}, bert loss {np.mean(bert_losses[-interval:]):.5f}, gt_traj_energys {np.mean(gt_traj_energys[-interval:]):.5f}, mcmc_energys {np.mean(mcmc_energys[-interval:]):.5f}, action_correct_rate {np.mean(action_correct_rates[-interval:]):.5f}, all_action_correct_rate_steps {np.mean(all_action_correct_rate_steps[-interval:],axis=0)}, pos eng {np.mean(pos_energies[-interval:]):.5f}, neg eng {np.mean(neg_energies[-interval:]):.5f}' #rates {np.mean(rates)}, 
+                #    self.logger.info(msg)
+                #    self.test_returns(0, test_num=5) 
                     #if (np.mean(action_correct_rates[-interval:])>0.95):
                     #    pdb.set_trace()
                     #tmp = np.mean(all_action_correct_rate_steps[-interval:],axis=0)
                     #if (np.isnan(tmp[-1])):
                     #    pdb.set_trace()
-        self.tokens = 0 # counter used for learning rate decay
+        self.tokens = 0
+        best_eval_return = 0
         for epoch in range(config.max_epochs):
             run_epoch('train', epoch_num=epoch)  
+            eval_return = self.test_returns(0, test_num=10) 
+            if (eval_return > best_eval_return):
+                best_eval_return = eval_return
+                self.save_checkpoint()
+        self.load_checkpoint()
         self.test_returns(0, test_num=40) 
 
     def test_returns(self, ret, test_num=10):
@@ -227,7 +240,7 @@ class Trainer:
                 if (done or actions.count(0) > 500):
                     T_rewards.append(reward_sum)
                     zero_lengths = actions.count(0)
-                    print(f"length {len(actions)}, occurrence [{actions.count(0)},{actions.count(1)}, {actions.count(2)}, {actions.count(3)}]")
+                    print(f"length {len(actions)}, reward_sum {reward_sum}, occurrence [{actions.count(0)},{actions.count(1)}, {actions.count(2)}, {actions.count(3)}]")
                     break
                 sample_actions = bert_sample_multi_step(self.bert_model, all_states, y=torch.tensor(actions, dtype=torch.long).to(self.device).unsqueeze(1).unsqueeze(0),\
                     logger=self.logger,\
@@ -241,6 +254,47 @@ class Trainer:
         self.logger.info(msg)
         self.bert_model.train(True)
         return eval_return
+
+'''
+                    try:
+                        bert_model.zero_grad()
+                        bert_loss.backward()
+
+                        # verify whether all gradients are finite
+                        gradient_fine = True
+                        for name, param in bert_model.named_parameters():
+                            # Some module might not be used (return_embedding)
+                            if param.grad is None:
+                                continue
+
+                            if not torch.all(torch.isfinite(param.grad)):
+                                gradient_fine = False
+                                print(f"NaN/inf occurs in the gradient of the weight: {name}")
+                        if not gradient_fine:
+                            pdb.set_trace()
+
+                        torch.nn.utils.clip_grad_norm_(bert_model.parameters(), config.grad_norm_clip)
+                        bert_optimizer.step()
+
+                        # verify the weights are all finite
+
+                        weight_fine = True
+                        for name, param in bert_model.named_parameters():
+                            # Some module might not be used.
+                            if param.grad is None:
+                                continue
+
+                            if not torch.all(torch.isfinite(param.grad)):
+                                weight_fine = False
+                                print(f"NaN/inf occurs in the weight: {name}")
+                        if not weight_fine:
+                            pdb.set_trace()
+                    except RuntimeError:
+                        pdb.set_trace()
+
+'''
+
+
 
 class Env():
     def __init__(self, args):
@@ -285,8 +339,8 @@ class Env():
         observation = self._get_state()
         self.state_buffer.append(observation)
         self.lives = self.ale.lives()
-        print(f"self.lives {self.lives}")
-        pdb.set_trace()
+        # print(f"self.lives {self.lives}")
+        # pdb.set_trace()
         return torch.stack(list(self.state_buffer), 0)
 
     def step(self, action):

@@ -8,7 +8,17 @@
 #    done
 #done 231 321 132 213 GoToObjMazeS4Close PutNextLocal GoToSeqS5R2
 
-for seed in 123
+for seed in 231 321
 do
-    python run_dt_atari.py --seed $seed --horizon 5 --context_length 25 --sample_iteration 10 --epochs 200 --model_type 'naive' --num_steps 10000 --num_buffers 5 --game 'Breakout' --batch_size 64
+    python run_dt_atari.py \
+        --seed $seed \
+        --horizon 5 \
+        --context_length 25 \
+        --sample_iteration 10 \
+        --epochs 10 \
+        --model_type 'naive' \
+        --num_steps 500000 \
+        --num_buffers 50 \
+        --game 'Breakout' \
+        --batch_size 64
 done

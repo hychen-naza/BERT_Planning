@@ -460,6 +460,7 @@ class BERT_GPT(nn.Module):
 
     # state, action, and return
     def forward(self, states, actions, rtgs=None, timesteps=None, insts=None, full_image=None, mode='train'):
+        # This is image encoder.
         state_embeddings = self.state_encoder(states.reshape(-1, 4, 84, 84).type(torch.float32).contiguous()) # (batch * block_size, n_embd)
         state_embeddings = state_embeddings.reshape(states.shape[0], states.shape[1], self.config.n_embd) # (batch, block_size, n_embd)
 
@@ -505,5 +506,8 @@ class BERT_GPT(nn.Module):
             action_logits = action_logits # for completeness
         else:
             raise NotImplementedError()
-        #pdb.set_trace()
+        
+        if not torch.all(torch.isfinite(action_logits)):
+            pdb.set_trace()
+
         return action_logits #[:,:,:self.config.vocab_size-2] # only keep the prediction for  RIGHT, LEFT, UP, DOWN

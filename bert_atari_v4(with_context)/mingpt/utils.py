@@ -41,7 +41,6 @@ def bert_sample_multi_step(bert_model, x, y=None, timesteps=None, insts=None, lo
     has quadratic complexity unlike an RNN that is only linear, and has a finite context window
     of block_size, unlike an RNN that has an infinite context window.
     """
-    sample_iteration = 5
     bert_model.eval()
     batch_size = x.shape[0]
     context = bert_model.config.context

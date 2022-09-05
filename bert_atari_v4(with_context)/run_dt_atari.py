@@ -37,7 +37,7 @@ parser.add_argument('--batch_size', type=int, default=128)
 parser.add_argument('--horizon', type=int, default=1)
 parser.add_argument('--trajectories_per_buffer', type=int, default=10, help='Number of trajectories to sample from each of the buffers.')
 parser.add_argument('--game', type=str, default='Breakout')
-parser.add_argument('--data_dir_prefix', type=str, default='/home/hchen657/decision-transformer/original_dt/decision-transformer/dt_atari/dqn_replay/')
+parser.add_argument('--data_dir_prefix', type=str, default='/local/datasets/dqn/')
 args = parser.parse_args()
 
 set_seed(args.seed)
