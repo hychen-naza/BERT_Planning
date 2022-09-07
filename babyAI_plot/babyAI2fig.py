@@ -43,7 +43,7 @@ class ImgWidget(QLabel):
 class AIGameWindow(QMainWindow):
     """Application window for the baby AI game"""
 
-    def __init__(self, env):
+    def __init__(self, env, **kwargs):
         super().__init__()
         self.initUI()
 
@@ -62,6 +62,10 @@ class AIGameWindow(QMainWindow):
 
         # Pointing and naming data
         self.pointingData = []
+
+        # save directory and file name
+        self.save_dir = kwargs["save_dir"]
+        self.save_name = kwargs["save_name"]
 
     def initUI(self):
         """Create and connect the UI elements"""
@@ -404,8 +408,8 @@ class AIGameWindow(QMainWindow):
         """
 
         # determine save path
-        save_dir = "./"
-        name = "image"
+        save_dir = self.save_dir
+        name = self.save_name
         id = self._get_id(save_dir, name)   # suffix
         save_name = name + f"_{id}" + ".png"
         save_path = os.path.join(save_dir, save_name)
@@ -428,6 +432,11 @@ class AIGameWindow(QMainWindow):
             count += 1
         return count
 
+def process_opts(opt):
+    if opt.save_name is None:
+        opt.save_name = opt.env
+    
+    return opt
 
 def main(argv):
     parser = OptionParser()
@@ -448,9 +457,22 @@ def main(argv):
         help="gym environment seed",
         default=0
     )
+    parser.add_option(
+        "--save_name",
+        type=str,
+        help="image save name. Defaults to the env name",
+        default=None
+    )
+    parser.add_option(
+        "--save_dir",
+        type=str,
+        help="image save directory. Defaults to ./",
+        default="./"
+    )
 
     (options, args) = parser.parse_args()
-
+    options = process_opts(options)
+    
     # Load the gym environment
     env = gym.make(options.env)
     env.seed(options.seed)
@@ -459,10 +481,11 @@ def main(argv):
 
     # Create the application window
     app = QApplication(sys.argv)
-    window = AIGameWindow(env)
+    window = AIGameWindow(env, save_dir = options.save_dir, save_name = options.save_name)
 
     # Run the application
     sys.exit(app.exec_())
+
 
 
 if __name__ == '__main__':
