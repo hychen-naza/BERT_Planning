@@ -7,13 +7,13 @@ Sample GUI application to interact with BabyAI levels
 import pdb
 
 import time
-import sys
+import sys, os
 import threading
 import copy
 import random
 from optparse import OptionParser
 
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import Qt, QTimer, QByteArray, QBuffer
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QInputDialog
 from PyQt5.QtWidgets import QLabel, QTextEdit, QFrame
 from PyQt5.QtWidgets import QPushButton, QSlider, QHBoxLayout, QVBoxLayout
@@ -24,6 +24,8 @@ import gym
 import babyai
 from babyai.utils.agent import BotAgent
 from babyai.minigrid import minigrid
+
+IMG_FORMAT = ["PNG", "JPG", "JPEG", "BMP"]
 
 class ImgWidget(QLabel):
     """
@@ -147,6 +149,10 @@ class AIGameWindow(QMainWindow):
         plusButton = QPushButton("+ Reward")
         plusButton.clicked.connect(self.plusReward)
 
+        # NOTE: save button - added by Yiye
+        saveButton = QPushButton("save", self) 
+        saveButton.clicked.connect(self.saveEnv)
+
         slider = QSlider(Qt.Horizontal, self)
         slider.setFocusPolicy(Qt.NoFocus)
         slider.setMinimum(0)
@@ -168,6 +174,7 @@ class AIGameWindow(QMainWindow):
         hbox.addStretch(1)
         hbox.addWidget(minusButton)
         hbox.addWidget(plusButton)
+        hbox.addWidget(saveButton)
         hbox.addStretch(1)
 
         return hbox
@@ -390,8 +397,36 @@ class AIGameWindow(QMainWindow):
         if done:
             self.resetEnv()
         
+    def saveEnv(self):
+        """Save the current environment
+        For a list of acceptable image format, see:
+        https://doc.qt.io/qt-6/qpixmap.html#reading-and-writing-image-files
+        """
 
-        
+        # determine save path
+        save_dir = "./"
+        name = "image"
+        id = self._get_id(save_dir, name)   # suffix
+        save_name = name + f"_{id}" + ".png"
+        save_path = os.path.join(save_dir, save_name)
+
+        # save image
+        pixmap = self.env.render(mode='pixmap')
+        pixmap.save(save_path, "PNG")
+
+        print(f"Current environment image saved to {save_path}")
+
+    
+    def _get_id(self, dir_path, name):
+        count = 0
+        for f in os.listdir(dir_path):
+            filename = os.path.basename(f)
+            name_this = filename.rsplit('_')[0]
+            ext_this = filename.rsplit('.')[1]
+            if (ext_this.upper() not in IMG_FORMAT) or (name_this != name):
+                continue
+            count += 1
+        return count
 
 
 def main(argv):
