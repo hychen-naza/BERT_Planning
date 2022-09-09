@@ -45,6 +45,12 @@ class AIGameWindow(QMainWindow):
 
     def __init__(self, env, **kwargs):
         super().__init__()
+
+        # save directory and file name
+        self.save_dir = kwargs["save_dir"]
+        self.save_name = kwargs["save_name"]
+        self.with_agent_view = kwargs["with_agent_view"]
+
         self.initUI()
 
         # By default, manual stepping only
@@ -62,10 +68,6 @@ class AIGameWindow(QMainWindow):
 
         # Pointing and naming data
         self.pointingData = []
-
-        # save directory and file name
-        self.save_dir = kwargs["save_dir"]
-        self.save_name = kwargs["save_name"]
 
     def initUI(self):
         """Create and connect the UI elements"""
@@ -357,7 +359,7 @@ class AIGameWindow(QMainWindow):
         unwrapped = self.env.unwrapped
 
         # Render and display the environment
-        pixmap = self.env.render(mode='pixmap')
+        pixmap = self.env.render(mode='pixmap', global_view=not self.with_agent_view)
         self.imgLabel.setPixmap(pixmap)
 
         # Render and display the agent's view
@@ -415,7 +417,7 @@ class AIGameWindow(QMainWindow):
         save_path = os.path.join(save_dir, save_name)
 
         # save image
-        pixmap = self.env.render(mode='pixmap')
+        pixmap = self.env.render(mode='pixmap', global_view=not self.with_agent_view)
         pixmap.save(save_path, "PNG")
 
         print(f"Current environment image saved to {save_path}")
@@ -469,6 +471,11 @@ def main(argv):
         help="image save directory. Defaults to ./",
         default="./"
     )
+    parser.add_option(
+        "--with_agent_view",
+        action="store_true",
+        help="Render the scene with highlighted agent view or not.",
+    )
 
     (options, args) = parser.parse_args()
     options = process_opts(options)
@@ -481,7 +488,7 @@ def main(argv):
 
     # Create the application window
     app = QApplication(sys.argv)
-    window = AIGameWindow(env, save_dir = options.save_dir, save_name = options.save_name)
+    window = AIGameWindow(env, save_dir = options.save_dir, save_name = options.save_name, with_agent_view=options.with_agent_view)
 
     # Run the application
     sys.exit(app.exec_())
